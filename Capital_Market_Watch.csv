@@ -1,15 +1,15 @@
-Month,Week,Net Foreigners Position
-JAN,Week 1,674.2
-JAN,Week 2,918.0
-JAN,Week 3,301.0
-JAN,Week 4,2610.2
-FEB,Week 5,84.0
-FEB,Week 6 ,27.0
-FEB,Week 7,-276.9
-FEB,Week 8,-1558.2
-MAR,Week 9 ,-2272.6
-MAR,Week 10,-1941.3
-MAR,Week 11,3359.7
-MAR,Week 12,-430.9
-APR,Week 13,-1911.9
-APR,Week 14,205.9
+Month,Week,Net Foreigners Position,EGP/USD
+JAN,Week 1,674.2,47.36
+JAN,Week 2,918,47.22
+JAN,Week 3,301,47.37
+JAN,Week 4,2610.2,47.02
+FEB,Week 5,84,47.09
+FEB,Week 6 ,27,46.94
+FEB,Week 7,-276.9,47.11
+FEB,Week 8,-1558.2,47.93
+MAR,Week 9 ,-2272.6,49.71
+MAR,Week 10,-1941.3,52.35
+MAR,Week 11,3359.7,52.48
+MAR,Week 12,-430.9,52.76
+APR,Week 13,-1911.9,54.21
+APR,Week 14,205.9,54.08
