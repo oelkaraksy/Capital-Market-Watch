@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Capital on the Move: Foreigners Position in Egypt’s Capital Market</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Source+Sans+3:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Source Sans 3', sans-serif;
+    background: #e8e8e8;
+    display: flex; align-items: center; justify-content: center;
+    min-height: 100vh; padding: 16px;
+  }
+
+  .frame {
+    position: relative;
+    width: min(1200px, 96vw, 96vh);
+    height: min(1200px, 96vw, 96vh);
+    background: #fff;
+    border: 1px solid #d8d8d8;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.10);
+    overflow: hidden;
+    display: flex; flex-direction: column;
+  }
+
+  .play-overlay {
+    position: absolute; inset: 0; cursor: pointer;
+    z-index: 6; background: transparent; border: none; padding: 0;
+  }
+
+  /* Header row: title on left, YTD box on right — aligned at top */
+  .header {
+    padding: 56px 56px 4px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 24px;
+  }
+  .header h1 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 36px; letter-spacing: 1px;
+    color: #0070C0; line-height: 1.1;
+  }
+  .header .subheader {
+    font-size: 12px; color: #888;
+    margin-top: 8px; line-height: 1.5;
+    font-style: italic;
+    max-width: 480px;
+  }
+  .header .subheader {
+    font-size: 12px; color: #888;
+    margin-top: 8px; line-height: 1.5;
+    font-style: italic;
+    max-width: 480px;
+  }
+
+  /* YTD box — lives in header row, right side */
+  .ytd-box {
+    flex-shrink: 0;
+    width: 148px;
+    border: 2px solid #ccc;
+    border-radius: 6px;
+    padding: 10px 14px;
+    text-align: center;
+    background: #fff;
+    pointer-events: none;
+    transition: border-color 0.4s;
+  }
+  .ytd-label-top {
+    font-family: 'Source Sans 3', sans-serif;
+    font-size: 11px; font-weight: 600;
+    letter-spacing: 0.7px; text-transform: uppercase;
+    color: #999; margin-bottom: 4px;
+  }
+  .ytd-value {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 40px; line-height: 1;
+    color: #aaa; transition: color 0.4s;
+  }
+  .ytd-label-bottom {
+    font-family: 'Source Sans 3', sans-serif;
+    font-size: 11px; font-weight: 600;
+    letter-spacing: 0.7px; text-transform: uppercase;
+    color: #999; margin-top: 4px;
+  }
+  .ytd-box.positive { border-color: #2a9d5c; }
+  .ytd-box.positive .ytd-value { color: #2a9d5c; }
+  .ytd-box.negative { border-color: #e03c31; }
+  .ytd-box.negative .ytd-value { color: #e03c31; }
+
+  /* Legend */
+  .legend {
+    display: flex; gap: 24px; flex-wrap: wrap;
+    padding: 8px 56px 8px; flex-shrink: 0;
+  }
+  .legend-item { display: flex; align-items: center; gap: 8px; font-size: 15px; color: #555; }
+  .leg-bar { width: 16px; height: 16px; border-radius: 3px; flex-shrink: 0; }
+
+  /* Chart */
+  .chart-area { flex: 1; position: relative; padding: 0 24px; min-height: 0; }
+  #chart-svg { width: 100%; height: 100%; overflow: visible; display: block; }
+
+  /* Bottom row */
+  .bottom-row {
+    padding: 8px 56px 25px; flex-shrink: 0;
+    border-top: 1px solid #e4e4e4; margin-top: 8px;
+    display: flex; align-items: center;
+    justify-content: space-between; gap: 24px;
+  }
+  .source-note { font-size: 12px; color: #777; line-height: 1.6; flex: 1; }
+  .source-note strong { color: #2a2a2a; font-weight: 700; }
+  .watermark-bottom {
+    height: 52px; width: auto; object-fit: contain;
+    opacity: 0.88; flex-shrink: 0;
+    align-self: center;
+  }
+</style>
+</head>
+<body>
+
+<div class="frame">
+  <button class="play-overlay" id="playOverlay" aria-label="Play / Pause"></button>
+
+  <!-- Title + YTD box in same row, top-aligned -->
+  <div class="header">
+    <div>
+      <h1>Capital on the Move: Foreigners <br> in Egypt’s Capital Market</h1>
+      <div class="subheader">The values represent the weekly trading activity of foreign institutional investors across equities, bonds &amp; bills, and over-the-counter transactions.</div>
+    </div>
+    <div class="ytd-box" id="ytdBox">
+      <div class="ytd-label-top">Year To Date</div>
+      <div class="ytd-label-bottom">Cumulative Change</div>
+      <div class="ytd-value" id="ytdValue">—</div>
+    </div>
+  </div>
+
+  <div class="legend">
+    <div class="legend-item"><div class="leg-bar" style="background:#2a9d5c"></div>Net Buy</div>
+    <div class="legend-item"><div class="leg-bar" style="background:#e03c31"></div>Net Sell</div>
+  </div>
+  <div style="padding: 0 56px 8px; font-size: 12px; color: #999; font-family: 'Source Sans 3', sans-serif;">Values in USD millions</div>
+
+  <div class="chart-area">
+    <svg id="chart-svg" preserveAspectRatio="xMidYMid meet"></svg>
+  </div>
+
+  <div class="bottom-row">
+    <div class="source-note">
+      <strong>Notes:</strong> The original data are reported in EGP millions and have been converted into USD millions using the Central Bank of Egypt’s weekly average exchange rates. A net buyer position indicates that foreign investors’ purchases exceeded their sales during the week across the aforementioned categories (equities, bills &amp; bonds, and OTC), while a net seller position reflects the opposite.  <br>
+      <strong>Sources:</strong> Egyptian Exchange (EGX) and Dcode EFC calculations.
+    </div>
+    <img class="watermark-bottom"
+         src="https://raw.githubusercontent.com/oelkaraksy/Capital-Market-Watch/main/DCODE%20LOGO%20FOR%20LINKEDIN%20V2-01.jpg"
+         alt="Dcode" onerror="this.style.display='none'">
+  </div>
+</div>
+
+<script>
+const CSV_URL = 'https://raw.githubusercontent.com/oelkaraksy/Capital-Market-Watch/refs/heads/main/Capital_Market_Watch.csv';
+const ns = 'http://www.w3.org/2000/svg';
+
+async function loadCSV() {
+  const res = await fetch(CSV_URL);
+  const text = await res.text();
+  const lines = text.trim().split('\n').slice(1);
+  return lines.map(line => {
+    const parts = line.split(',');
+    return {
+      month: parts[0].trim(),
+      week:  parts[1].trim(),
+      value: parseFloat(parts[2].trim()),
+      fx:    parts[3] ? parseFloat(parts[3].trim()) : NaN
+    };
+  }).filter(d => !isNaN(d.value));
+}
+
+(async function init() {
+  let RAW;
+  try { RAW = await loadCSV(); } catch(e) { console.error(e); return; }
+
+  const svgEl  = document.getElementById('chart-svg');
+  const ytdBox = document.getElementById('ytdBox');
+  const ytdVal = document.getElementById('ytdValue');
+
+  const area = svgEl.parentElement.getBoundingClientRect();
+  const W = Math.round(area.width - 32); // 24px each side
+  const H = Math.round(area.height);
+  svgEl.setAttribute('viewBox', `0 0 ${W} ${H}`);
+
+  // No Y-axis labels — minimal left padding
+  const PAD = { top: 80, right: 0, bottom: 118, left: 8 };
+  const cW  = W - PAD.left - PAD.right;
+  const cH  = H - PAD.top  - PAD.bottom;
+  const N   = RAW.length;
+
+  function el(tag, attrs, parent) {
+    const e = document.createElementNS(ns, tag);
+    if (attrs) Object.entries(attrs).forEach(([k, v]) => e.setAttribute(k, v));
+    if (parent) parent.appendChild(e);
+    return e;
+  }
+
+  const MAX_Y = 5000, MIN_Y = -4000, SPAN = MAX_Y - MIN_Y, STEP = 1000;
+  function sy(v) { return PAD.top + cH - ((v - MIN_Y) / SPAN) * cH; }
+  const zeroY = sy(0);
+
+  const gBg    = el('g', {}, svgEl);
+  const gGrid  = el('g', {}, svgEl);
+  const gSep   = el('g', {}, svgEl);   // month separators (drawn once, static)
+  const gXLbls = el('g', {}, svgEl);   // W# labels (animated)
+  const gMoLbls= el('g', {}, svgEl);   // month labels (animated, drawn once per month group)
+  const gBars     = el('g', {}, svgEl);
+  const gLbls     = el('g', {}, svgEl);
+  const gCallouts = el('g', {}, svgEl);
+  const gFX       = el('g', {}, svgEl);
+
+  el('rect', { x: 0, y: 0, width: W, height: H, fill: '#ffffff' }, gBg);
+
+  // Y-axis: zero baseline only, no tick labels, no grid lines
+  el('line', { x1: PAD.left, y1: zeroY, x2: PAD.left + cW, y2: zeroY, stroke: '#cccccc', 'stroke-width': 2 }, gGrid);
+
+  // ── Build month groups FIRST (needed for bar geometry) ────────
+  const monthGroups = [];
+  let cur = { month: RAW[0].month, start: 0, end: 0 };
+  for (let i = 1; i < N; i++) {
+    if (RAW[i].month === cur.month) { cur.end = i; }
+    else { monthGroups.push(cur); cur = { month: RAW[i].month, start: i, end: i }; }
+  }
+  monthGroups.push(cur);
+
+  // Bar geometry — extra inter-month gap applied via slot adjustment
+  // We give each month boundary an extra half-slot of breathing room
+  // by computing an effective slot that accounts for N bars + (monthGroups.length-1) gap units
+  const MONTH_GAP_UNITS = 0.7; // extra slot-widths of gap between months
+  const totalUnits = N + (monthGroups.length - 1) * MONTH_GAP_UNITS;
+  const unitW = cW / totalUnits;
+
+  // Build x-position lookup per bar index, inserting extra gap at month boundaries
+  const barX = new Array(N);
+  let xCursor = PAD.left;
+  let prevMonth = RAW[0].month;
+  for (let i = 0; i < N; i++) {
+    if (i > 0 && RAW[i].month !== prevMonth) {
+      xCursor += unitW * MONTH_GAP_UNITS;
+      prevMonth = RAW[i].month;
+    }
+    barX[i] = xCursor;
+    xCursor += unitW;
+  }
+
+  const GAP  = Math.max(3, unitW * 0.14);
+  const barW = Math.max(8, unitW - GAP);
+  function bx(i) { return barX[i] + (unitW - barW) / 2; }
+  function cx(i) { return bx(i) + barW / 2; }
+
+  function capMonth(m) { return m.charAt(0).toUpperCase() + m.slice(1).toLowerCase(); }
+  function shortWeek(w) { return w.replace(/Week\s*/i, 'W'); }
+
+  // Pre-compute YTD sums
+  const ytdSums = [];
+  let run = 0;
+  for (let i = 0; i < N; i++) { run += RAW[i].value; ytdSums.push(run); }
+
+  // ── Animation state ────────────────────────────────────────────
+  const progress   = new Array(N).fill(0);
+  const lblOpacity = new Array(N).fill(0);
+  const revealed   = new Array(N).fill(false);
+  const barStart   = new Array(N).fill(null);
+  let totalElapsed = 0, lastTs = null, playing = false, rafId = null;
+
+  const BAR_GROW_MS = 600, STAGGER_MS = 833, LBL_FADE_MS = 200, LBL_DELAY_MS = 50;
+  function ease(t) { return 1 - Math.pow(1 - t, 3); }
+
+  function updateYTD(idx) {
+    if (idx < 0) { ytdVal.textContent = '—'; ytdBox.className = 'ytd-box'; return; }
+    const sum = ytdSums[idx];
+    ytdVal.textContent = Math.round(Math.abs(sum)).toLocaleString('en-US');
+    ytdBox.className = 'ytd-box ' + (sum >= 0 ? 'positive' : 'negative');
+  }
+
+  function drawBar(i, prog) {
+    const v    = RAW[i].value;
+    const fill = v >= 0 ? '#2a9d5c' : '#e03c31';
+    const x    = bx(i);
+    if (v >= 0) {
+      const bh = Math.max(2, (v / SPAN) * cH) * prog;
+      el('rect', { x, y: zeroY - bh, width: barW, height: bh, fill, rx: 3 }, gBars);
+    } else {
+      const bh = Math.max(2, (Math.abs(v) / SPAN) * cH) * prog;
+      el('rect', { x, y: zeroY, width: barW, height: bh, fill, rx: 3 }, gBars);
+    }
+
+    // W# label — near zero baseline, opposite direction to bar; font-size 12
+    if (prog > 0.05) {
+      const fade = Math.min(1, prog * 5);
+      const sw = shortWeek(RAW[i].week);
+      const tg = el('g', { opacity: fade }, gXLbls);
+      if (v >= 0) {
+        el('text', { x: cx(i), y: zeroY + 14, 'font-family': 'Source Sans 3, sans-serif', 'font-size': '12', 'font-weight': '700', fill: '#444', 'text-anchor': 'middle' }, tg).textContent = sw;
+      } else {
+        el('text', { x: cx(i), y: zeroY - 4, 'font-family': 'Source Sans 3, sans-serif', 'font-size': '12', 'font-weight': '700', fill: '#444', 'text-anchor': 'middle' }, tg).textContent = sw;
+      }
+    }
+  }
+
+  function drawValueLabel(i, opacity) {
+    if (opacity <= 0) return;
+    const v   = RAW[i].value;
+    const col = v >= 0 ? '#2a9d5c' : '#e03c31';
+    let ly;
+    if (v >= 0) {
+      const bh = Math.max(2, (v / SPAN) * cH);
+      ly = zeroY - bh - 10;
+      if (ly < PAD.top + 26) ly = zeroY - bh + 30;
+    } else {
+      const bh = Math.max(2, (Math.abs(v) / SPAN) * cH);
+      ly = zeroY + bh + 10 + 17;
+      if (ly > PAD.top + cH - 6) ly = zeroY + bh - 6;
+    }
+    el('text', { x: cx(i), y: ly, 'font-family': 'Bebas Neue, sans-serif', 'font-size': '16', fill: col, 'text-anchor': 'middle', opacity: opacity.toFixed(3) }, gLbls)
+      .textContent = Math.round(Math.abs(v)).toLocaleString('en-US');
+  }
+
+  function frame(ts) {
+    if (!lastTs) lastTs = ts;
+    const dt = ts - lastTs; lastTs = ts;
+    totalElapsed += dt;
+
+    gBars.innerHTML = ''; gXLbls.innerHTML = ''; gLbls.innerHTML = '';
+    gSep.innerHTML = ''; gMoLbls.innerHTML = ''; gCallouts.innerHTML = ''; gFX.innerHTML = '';
+
+    let allDone = true, lastRevIdx = -1;
+
+    for (let i = 0; i < N; i++) {
+      if (totalElapsed >= i * STAGGER_MS) {
+        if (barStart[i] === null) barStart[i] = totalElapsed;
+        revealed[i] = true;
+      }
+      if (!revealed[i]) { allDone = false; continue; }
+
+      const be = totalElapsed - barStart[i];
+      progress[i]   = Math.min(1, ease(be / BAR_GROW_MS));
+      const le      = be - BAR_GROW_MS - LBL_DELAY_MS;
+      lblOpacity[i] = le > 0 ? Math.min(1, le / LBL_FADE_MS) : 0;
+
+      drawBar(i, progress[i]);
+      drawValueLabel(i, lblOpacity[i]);
+
+      if (progress[i] > 0.5) lastRevIdx = i;
+      if (progress[i] < 1 || lblOpacity[i] < 1) allDone = false;
+    }
+
+    // ── Month separators + centered month labels ───────────────
+    for (const grp of monthGroups) {
+      if (!revealed[grp.start]) continue;
+
+      const fadeIn = Math.min(1, (progress[grp.start] || 0) * 5);
+
+      // Separator: centered exactly between last bar of prev group and first bar of this group
+      if (grp.start > 0) {
+        const prevEnd = grp.start - 1;
+        const leftEdge  = bx(prevEnd) + barW; // right edge of last bar in prev group
+        const rightEdge = bx(grp.start);       // left edge of first bar in this group
+        const sepX = (leftEdge + rightEdge) / 2;
+        el('line', {
+          x1: sepX, y1: PAD.top,
+          x2: sepX, y2: PAD.top + cH + 86,
+          stroke: '#d0d0d0', 'stroke-width': 1.5,
+          'stroke-dasharray': '4 3',
+          opacity: fadeIn.toFixed(3)
+        }, gSep);
+      }
+
+      // Full month name
+      const fullMonthNames = {
+        JAN: 'January', FEB: 'February', MAR: 'March', APR: 'April',
+        MAY: 'May', JUN: 'June', JUL: 'July', AUG: 'August',
+        SEP: 'September', OCT: 'October', NOV: 'November', DEC: 'December'
+      };
+      const groupCenterX = (cx(grp.start) + cx(grp.end)) / 2;
+      const monthFade    = Math.min(1, (progress[grp.start] || 0) * 4);
+      if (monthFade > 0) {
+        const fullName = fullMonthNames[grp.month.toUpperCase()] || capMonth(grp.month);
+        el('text', {
+          x: groupCenterX,
+          y: PAD.top + cH + 100,
+          'font-family': 'Source Sans 3, sans-serif',
+          'font-size': '13', 'font-weight': '700', fill: '#555',
+          'text-anchor': 'middle',
+          opacity: monthFade.toFixed(3)
+        }, gMoLbls).textContent = fullName;
+      }
+    }
+
+    // ── Event callouts for W8 and W11 ─────────────────────────
+    const calloutDefs = [
+      { barIndex: 7,  lines: ['Start of US/Israel–Iran War'],       color: '#b85c55', accent: '#c97770', stemColor: 'rgba(184,92,85,0.35)' },
+      { barIndex: 10, lines: ['Initial Signs of', 'De-escalation'], color: '#4a8c6a', accent: '#6aad8a', stemColor: 'rgba(74,140,106,0.35)' },
+    ];
+    for (const cd of calloutDefs) {
+      const i = cd.barIndex;
+      if (!revealed[i] || progress[i] < 0.15) continue;
+      const fade   = Math.min(1, (progress[i] - 0.15) / 0.5);
+      const barCX  = cx(i);
+      const v      = RAW[i].value;
+
+      const bh     = Math.max(2, (Math.abs(v) / SPAN) * cH) * progress[i];
+      const tipY   = v >= 0 ? zeroY - bh : zeroY + bh;
+
+      // W8 box narrower (148), W11 two-line box (132)
+      const boxW   = cd.lines.length === 1 ? 148 : 132;
+      const boxH   = cd.lines.length === 1 ? 26  : 42;
+      const boxTop = PAD.top - boxH - 26;
+      const boxX   = barCX - boxW / 2;
+
+      const stemX  = barCX;
+      const stemY1 = boxTop + boxH + 2;
+      const stemY2 = v >= 0 ? tipY - 4 : tipY + 4;
+
+      const clampedBoxX = Math.max(PAD.left + 4, Math.min(W - PAD.right - boxW - 4, boxX));
+
+      const g = el('g', { opacity: fade.toFixed(3) }, gCallouts);
+
+      // Solid semi-transparent stem
+      el('line', {
+        x1: stemX, y1: stemY1, x2: stemX, y2: stemY2,
+        stroke: cd.stemColor, 'stroke-width': 1.2
+      }, g);
+
+      // Small subtle arrowhead
+      const arrowDir = v >= 0 ? -1 : 1;
+      const ax = stemX, ay = stemY2;
+      const arrowPath = `M${ax},${ay} L${ax-4},${ay - arrowDir*6} L${ax+4},${ay - arrowDir*6} Z`;
+      el('path', { d: arrowPath, fill: cd.stemColor }, g);
+
+      // Box: light tinted fill, soft border
+      el('rect', {
+        x: clampedBoxX, y: boxTop, width: boxW, height: boxH,
+        rx: 4, fill: '#fafafa',
+        stroke: cd.color, 'stroke-width': 1,
+        opacity: '0.92'
+      }, g);
+
+      // Left accent bar
+      el('rect', {
+        x: clampedBoxX, y: boxTop, width: 3, height: boxH,
+        rx: 1.5, fill: cd.accent
+      }, g);
+
+      // Text lines
+      const lineH = 14;
+      const totalTextH = cd.lines.length * lineH;
+      const textStartY = boxTop + (boxH - totalTextH) / 2 + 11.5;
+      cd.lines.forEach((line, li) => {
+        el('text', {
+          x: clampedBoxX + boxW / 2 + 1.5,
+          y: textStartY + li * lineH,
+          'font-family': 'Source Sans 3, sans-serif',
+          'font-size': '10.5',
+          'font-weight': '600',
+          fill: cd.color,
+          'text-anchor': 'middle',
+          'dominant-baseline': 'auto'
+        }, g).textContent = line;
+      });
+    }
+
+    // ── Exchange rate table — 2 rows below chart, above month names ─
+    // Row 1: col-0 = "EGP/USD" label only, all other columns empty
+    // Row 2: FX values + direction arrows, one per bar column
+    //
+    // Vertical layout (from chart bottom = PAD.top + cH):
+    //   +14  → Row 1 top
+    //   +14 to +34 → Row 1 (20px tall)
+    //   +34 to +58 → Row 2 (24px tall)
+    //   +72  → Month names
+    const FX_ROW1_TOP = PAD.top + cH + 14;
+    const FX_ROW2_TOP = PAD.top + cH + 34;
+    const FX_ROW1_H   = 20;
+    const FX_ROW2_H   = 24;
+    const FX_ROW1_Y   = FX_ROW1_TOP + 14;   // text baseline in row 1
+    const FX_ROW2_Y   = FX_ROW2_TOP + 17;   // text baseline in row 2
+
+    if (revealed[0]) {
+      const stripFade = Math.min(1, (progress[0] || 0) * 4);
+
+      // Row 1 background (full width — same as chart)
+      el('rect', {
+        x: PAD.left, y: FX_ROW1_TOP,
+        width: cW, height: FX_ROW1_H,
+        fill: '#f7f7f7', rx: 2,
+        opacity: (stripFade * 0.6).toFixed(3)
+      }, gFX);
+
+      // Row 2 background
+      el('rect', {
+        x: PAD.left, y: FX_ROW2_TOP,
+        width: cW, height: FX_ROW2_H,
+        fill: '#f2f2f2', rx: 2,
+        opacity: (stripFade * 0.5).toFixed(3)
+      }, gFX);
+
+      // "EGP/USD" label — Row 1, Col 0 only
+      el('text', {
+        x: PAD.left + 6, y: FX_ROW1_Y,
+        'font-family': 'Source Sans 3, sans-serif',
+        'font-size': '10', 'font-weight': '700',
+        fill: '#aaa', 'text-anchor': 'start',
+        'font-style': 'italic',
+        opacity: stripFade.toFixed(3)
+      }, gFX).textContent = 'EGP/USD';
+    }
+
+    // FX values in Row 2 — one per bar, aligned to bar cx
+    for (let i = 0; i < N; i++) {
+      if (!revealed[i] || progress[i] < 0.1) continue;
+      const fxVal = RAW[i].fx;
+      if (isNaN(fxVal)) continue;
+
+      const fade    = Math.min(1, (progress[i] - 0.1) / 0.6);
+      const fxPrev  = i > 0 ? RAW[i-1].fx : NaN;
+      const hasPrev = !isNaN(fxPrev);
+      const isUp    = hasPrev && fxVal > fxPrev;
+      const isDown  = hasPrev && fxVal < fxPrev;
+      // Color encodes direction: amber = EGP weakening, teal = EGP strengthening, grey = unchanged
+      const textColor = isUp ? '#e03c31' : isDown ? '#4a7c6a' : '#888';
+      const fxStr   = fxVal.toFixed(2);
+
+      const g = el('g', { opacity: fade.toFixed(3) }, gFX);
+
+      // FX value text — centred on bar cx, no arrow
+      el('text', {
+        x: cx(i), y: FX_ROW2_Y,
+        'font-family': 'Source Sans 3, sans-serif',
+        'font-size': '13', 'font-weight': '500',
+        fill: textColor, 'text-anchor': 'middle'
+      }, g).textContent = fxStr;
+    }
+
+    updateYTD(lastRevIdx);
+    if (allDone || !playing) return;
+    rafId = requestAnimationFrame(frame);
+  }
+
+  function play()  { playing = true;  lastTs = null; rafId = requestAnimationFrame(frame); }
+  function pause() { playing = false; if (rafId) cancelAnimationFrame(rafId); }
+  function reset() {
+    pause(); totalElapsed = 0; lastTs = null;
+    for (let i = 0; i < N; i++) { progress[i] = 0; lblOpacity[i] = 0; revealed[i] = false; barStart[i] = null; }
+    gBars.innerHTML = ''; gXLbls.innerHTML = ''; gLbls.innerHTML = '';
+    gSep.innerHTML = ''; gMoLbls.innerHTML = ''; gCallouts.innerHTML = ''; gFX.innerHTML = '';
+    updateYTD(-1);
+  }
+
+  document.getElementById('playOverlay').addEventListener('click', () => {
+    const done = revealed[N-1] && progress[N-1] >= 1 && lblOpacity[N-1] >= 1;
+    if (done) { reset(); setTimeout(play, 200); return; }
+    playing ? pause() : play();
+  });
+
+  setTimeout(play, 500);
+})();
+</script>
+</body>
+</html>
