@@ -24,18 +24,23 @@
   }
 
   /* ── Frame — fixed square on desktop, minimum 480px wide on mobile ── */
-  .frame {
+ .frame {
     position: relative;
-    /* On desktop: square capped at 1200px.
-       On mobile:  minimum 520px so bars/labels stay legible; 
-       user can scroll horizontally if viewport is narrower. */
-    width: max(520px, min(1200px, 96vw));
+    width: min(1200px, 96vw);
+    /* Taller ratio on mobile so bars have room to breathe */
     aspect-ratio: 1 / 1;
     background: #fff;
     border: 1px solid #d8d8d8;
     box-shadow: 0 4px 24px rgba(0,0,0,0.10);
     overflow: hidden;
     display: flex; flex-direction: column;
+  }
+
+  @media (max-width: 600px) {
+    .frame {
+      width: 100vw;
+      aspect-ratio: 3 / 4;   /* portrait on mobile — taller than wide */
+    }
   }
 
   .play-overlay {
@@ -204,7 +209,7 @@ async function loadCSV() {
   }).filter(d => !isNaN(d.value));
 }
 
-(async function init() {
+async function init() {
   let RAW;
   try { RAW = await loadCSV(); } catch(e) { console.error(e); return; }
 
@@ -212,8 +217,9 @@ async function loadCSV() {
   const ytdBox = document.getElementById('ytdBox');
   const ytdVal = document.getElementById('ytdValue');
 
+  await new Promise(r => requestAnimationFrame(r));
   const area = svgEl.parentElement.getBoundingClientRect();
-  const W = Math.round(area.width - 32); // 24px each side
+  const W = Math.round(area.width - 32);
   const H = Math.round(area.height);
   svgEl.setAttribute('viewBox', `0 0 ${W} ${H}`);
 
@@ -589,7 +595,19 @@ async function loadCSV() {
   });
 
   setTimeout(play, 500);
-})();
+}
+init();
+ 
+ let resizeTimer;
+window.addEventListener('resize', () => {
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(() => {
+    const svgEl = document.getElementById('chart-svg');
+    svgEl.innerHTML = '';
+    svgEl.removeAttribute('viewBox');
+    init();
+  }, 250);
+});
 </script>
 </body>
 </html>
